@@ -58,6 +58,81 @@
 ---@field macro string
 ---@field annotation string
 
+--- @module 'evergarden.theme'
+local M = {}
+
+--- Setup the theme mapping based on configuration and palette
+---@param config? evergarden.types.config
+---@param colors? evergarden.types.colors
+---@return evergarden.types.theme
+function M.setup(config, colors)
+  -- Fallback to global config and colors if not provided
+  config = config or require('evergarden.config').get()
+  colors = colors or require('evergarden.colors').get(config)
+
+  -- Create theme object from color palette
+  local theme = vim.deepcopy(colors, true)
+  local c = theme -- shorthand for internal mapping
+
+  -- Essential UI definitions
+  theme.none    = 'NONE'
+  theme.colors  = colors
+  theme.accent  = c[config.theme.accent] or c.green
+  theme.cursor  = c[config.editor.cursor.color] or theme.accent
+  theme.sign    = c[config.editor.sign.color] or theme.none
+  theme.comment = c.overlay2
+
+  -- Editor UI components
+  theme.editor = {
+    search     = c.snow,
+    incsearch  = c.orange,
+    float      = c[config.editor.float.color] or theme.none,
+    completion = c[config.editor.completion.color] or theme.none,
+  }
+
+  -- Syntax highlighting mapping
+  theme.syntax = {
+    keyword    = c.red,
+    identifier = c.text,
+    property   = c.skye,
+    type       = c.yellow,
+    context    = c.overlay1,
+    operator   = c.subtext0,
+    constant   = c.pink,
+    func       = c.green,
+    string     = c.lime,
+    macro      = c.cherry,
+    annotation = c.cherry,
+  }
+
+  -- Diagnostic state colors
+  theme.diagnostic = {
+    ok    = c.green,
+    error = c.red,
+    warn  = c.yellow,
+    info  = c.aqua,
+    hint  = c.skye,
+  }
+
+  -- Diff / Git integration
+  theme.diff = {
+    add    = c.green,
+    delete = c.red,
+    change = c.aqua,
+  }
+
+  theme.git = {
+    staged    = c.green,
+    unstaged  = c.skye,
+    ignored   = c.overlay0,
+    untracked = c.subtext1,
+  }
+
+  return theme
+end
+
+return M
+
 local M = {}
 
 ---@param config? evergarden.types.config
