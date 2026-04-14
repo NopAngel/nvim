@@ -2,64 +2,56 @@
 --- cozy evergarden theme for neovim
 ---
 --- for configuration see |evergarden.config|
----@module 'evergarden'
 
-local config = require 'evergarden.config'
-
+local config = require('evergarden.config')
 local evergarden = {}
 
---- override the global config with custom options.
---- for configuration see |evergarden.config|
----@param cfg? evergarden.types.config|table
+--- Set global configuration
+--- @param cfg? table
 function evergarden.setup(cfg)
-  cfg = cfg or {}
-  config.set(cfg)
+  config.set(cfg or {})
 end
 
---- setup highlights using `cfg`.
---- can be used to temporarily override the global config.
----@param cfg? evergarden.types.config|table
+--- Main load function
+--- @param cfg? table
 function evergarden.load(cfg)
+  -- Clear existing highlights if a theme is already active
   if vim.g.colors_name then
-    vim.cmd 'hi clear'
+    vim.cmd('hi clear')
   end
 
-  if cfg then
-    cfg = config.override(cfg or {})
-  else
-    cfg = config.get()
-  end
-
+  -- Resolve configuration (prioritize local override)
+  local active_cfg = cfg and config.override(cfg) or config.get()
+  
   vim.g.colors_name = 'evergarden'
+  vim.go.background = active_cfg.theme.variant == 'summer' and 'light' or 'dark'
 
-  if cfg.theme.variant == 'summer' then
-    vim.go.background = 'light'
-  else
-    vim.go.background = 'dark'
-  end
+  -- Handle ANSI colors fallback
+  active_cfg.theme.ansi = vim.F.if_nil(active_cfg.theme.ansi, not vim.o.termguicolors)
 
-  cfg.theme.ansi = vim.F.if_nil(cfg.theme.ansi, not vim.o.termguicolors)
-
-  local cache = cfg.cache or false
-  if cache then
-    local needs_compile = require('evergarden.cache').needs_compile(cfg)
-    if not needs_compile then
-      return require('evergarden.cache').load()
+  -- Cache Management logic
+  local use_cache = active_cfg.cache or false
+  if use_cache then
+    local cache_mod = require('evergarden.cache')
+    if not cache_mod.needs_compile(active_cfg) then
+      return cache_mod.load()
     end
-    require('evergarden.cache').clear()
+    cache_mod.clear()
   end
 
-  local theme = require('evergarden.theme').setup(cfg)
-  local hlgroups = require('evergarden.hl').setup(theme, cfg)
+  -- Generate and apply highlights
+  local theme = require('evergarden.theme').setup(active_cfg)
+  local hlgroups = require('evergarden.hl').setup(theme, active_cfg)
   require('evergarden.utils').set_highlights(hlgroups)
 
-  if cache then
-    require('evergarden.cache').write(cfg)
+  -- Save to cache if enabled
+  if use_cache then
+    require('evergarden.cache').write(active_cfg)
   end
 end
 
---- returns a table of colors based on the global config.
---- alias for |evergarden.colors.get()|.
+--- Get color palette
+--- @return table
 function evergarden.colors()
   return require('evergarden.colors').get()
 end
